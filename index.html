@@ -1,0 +1,172 @@
+<h2 class="sr-only">Interactive explorer: a triangle's area is always half of its rectangle</h2>
+<style>
+body{font-family:var(--font-sans);margin:0;padding:0}
+.wrap{max-width:560px;margin:0 auto;padding:1rem 0}
+.formula-row{display:grid;grid-template-columns:1fr 32px 1fr;gap:10px;align-items:center;margin-bottom:1.2rem}
+.fcard{border-radius:12px;padding:14px;text-align:center}
+.fcard-r{background:#E1F5EE}
+.fcard-t{background:#FBEAF0}
+.fcard-label{font-size:11px;font-weight:500;letter-spacing:.6px;margin-bottom:5px}
+.fcard-r .fcard-label{color:#0F6E56}
+.fcard-t .fcard-label{color:#993556}
+.fcard-formula{font-size:13px;margin-bottom:4px}
+.fcard-r .fcard-formula{color:#085041}
+.fcard-t .fcard-formula{color:#72243E}
+.fcard-num{font-size:28px;font-weight:500}
+.fcard-r .fcard-num{color:#04342C}
+.fcard-t .fcard-num{color:#4B1528}
+.eq{text-align:center;font-size:22px;color:var(--color-text-secondary)}
+.badge{display:inline-block;background:#EEEDFE;color:#3C3489;font-size:14px;font-weight:500;padding:7px 22px;border-radius:20px;border:1.5px solid #AFA9EC;text-align:center;margin-bottom:1.2rem}
+.ctrls{background:var(--color-background-secondary);border-radius:var(--border-radius-lg);padding:1rem 1.25rem;display:grid;gap:10px}
+.row{display:flex;align-items:center;gap:12px}
+.row label{font-size:13px;color:var(--color-text-secondary);min-width:68px}
+.row input{flex:1}
+.row span{font-size:13px;font-weight:500;min-width:22px;text-align:right;color:var(--color-text-primary)}
+.btns{display:flex;gap:8px;flex-wrap:wrap;padding-top:4px}
+button{font-size:12px;padding:5px 14px;cursor:pointer}
+button.active{background:var(--color-background-tertiary);border-color:var(--color-border-primary)}
+</style>
+
+<div class="wrap">
+  <div id="svgwrap" style="display:flex;justify-content:center;margin-bottom:1.2rem;min-height:220px;align-items:center;"></div>
+
+  <div class="formula-row">
+    <div class="fcard fcard-r">
+      <div class="fcard-label">RECTANGLE</div>
+      <div class="fcard-formula">W × H</div>
+      <div class="fcard-num" id="r-num">80</div>
+    </div>
+    <div class="eq">÷ 2</div>
+    <div class="fcard fcard-t">
+      <div class="fcard-label">TRIANGLE</div>
+      <div class="fcard-formula">½ × W × H</div>
+      <div class="fcard-num" id="t-num">40</div>
+    </div>
+  </div>
+
+  <div style="text-align:center;margin-bottom:1rem">
+    <div class="badge" id="badge">Triangle = ½ of Rectangle — always!</div>
+  </div>
+
+  <div class="ctrls">
+    <div class="row"><label>Width</label><input type="range" id="sl-w" min="4" max="20" value="10" step="1"><span id="lb-w">10</span></div>
+    <div class="row"><label>Height</label><input type="range" id="sl-h" min="4" max="20" value="8" step="1"><span id="lb-h">8</span></div>
+    <div class="row"><label>Triangles</label><input type="range" id="sl-n" min="1" max="4" value="1" step="1"><span id="lb-n">1</span></div>
+    <div class="btns">
+      <button id="btn-normal" class="active" onclick="setMode('normal')">Normal view</button>
+      <button id="btn-halves" onclick="setMode('halves')">Show the halves</button>
+      <button id="btn-prove" onclick="setMode('prove')">Prove it!</button>
+      <div id="speed-row" style="display:none;align-items:center;gap:6px">
+        <span style="font-size:12px;color:var(--color-text-secondary)">speed</span>
+        <input type="range" id="sl-spd" min="1" max="5" value="2" step="1" style="width:72px">
+        <span id="lb-spd" style="font-size:12px;font-weight:500;min-width:10px">2</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let W=10,H=8,N=1,mode='normal',animT=0,animDir=1,animId=null;
+const SW=520,SH=240,PX=44,PY=28;
+
+function lerp(a,b,t){return a+(b-a)*t}
+
+function pts(arr){return arr.map(p=>p[0]+','+p[1]).join(' ')}
+
+function drawSVG(){
+  const sc=Math.min((SW-PX*2)/W,(SH-PY*2)/H);
+  const rw=W*sc,rh=H*sc;
+  const rx=(SW-rw)/2,ry=(SH-rh)/2;
+  const rA=W*H;
+  document.getElementById('r-num').textContent=rA;
+  document.getElementById('t-num').textContent=rA/2;
+
+  let s='';
+  const cw=rw/N;
+
+  for(let i=0;i<N;i++){
+    const ox=rx+i*cw;
+    const apx=ox+cw/2, apy=ry;
+    const blx=ox,     bly=ry+rh;
+    const brx=ox+cw,  bry=ry+rh;
+    const tlx=ox,     tly=ry;
+    const trx=ox+cw,  try_=ry;
+
+    if(mode==='normal'){
+      s+=`<rect x="${ox}" y="${ry}" width="${cw}" height="${rh}" fill="#9FE1CB" opacity="0.45"/>`;
+      s+=`<polygon points="${pts([[apx,apy],[blx,bly],[brx,bry]])}" fill="#F4C0D1" stroke="#D4537E" stroke-width="1.5"/>`;
+    }
+    else if(mode==='halves'){
+      s+=`<polygon points="${pts([[tlx,tly],[apx,apy],[blx,bly]])}" fill="#5DCAA5" opacity="0.85" stroke="#1D9E75" stroke-width="1"/>`;
+      s+=`<polygon points="${pts([[trx,try_],[apx,apy],[brx,bry]])}" fill="#5DCAA5" opacity="0.85" stroke="#1D9E75" stroke-width="1"/>`;
+      s+=`<polygon points="${pts([[apx,apy],[blx,bly],[brx,bry]])}" fill="#ED93B1" stroke="#D4537E" stroke-width="1.5"/>`;
+      if(cw>70){
+        const tc=[(apx+blx+brx)/3,(apy+bly+bry)/3];
+        s+=`<text x="${tc[0]}" y="${tc[1]+5}" text-anchor="middle" font-size="15" font-weight="500" fill="#4B1528">½</text>`;
+        const lc=[(tlx+apx+blx)/3,(tly+apy+bly)/3];
+        s+=`<text x="${lc[0]}" y="${lc[1]+5}" text-anchor="middle" font-size="12" fill="#04342C">¼</text>`;
+        const rc=[(trx+apx+brx)/3,(try_+apy+bry)/3];
+        s+=`<text x="${rc[0]}" y="${rc[1]+5}" text-anchor="middle" font-size="12" fill="#04342C">¼</text>`;
+      }
+    }
+    else if(mode==='prove'){
+      const t=animT;
+      // Left corner start:(tlx,tly),(apx,apy),(blx,bly) → end:(apx,apy),(blx,bly),(apx,ry+rh)
+      const L=[
+        [lerp(tlx,apx,t), lerp(tly,apy,t)],
+        [lerp(apx,blx,t), lerp(apy,bly,t)],
+        [lerp(blx,apx,t), lerp(bly,ry+rh,t)]
+      ];
+      // Right corner start:(trx,try),(apx,apy),(brx,bry) → end:(apx,apy),(apx,ry+rh),(brx,bry)
+      const R=[
+        [lerp(trx,apx,t), lerp(try_,apy,t)],
+        [lerp(apx,apx,t), lerp(apy,ry+rh,t)],
+        [lerp(brx,brx,t), lerp(bry,bry,t)]
+      ];
+      s+=`<polygon points="${pts([[apx,apy],[blx,bly],[brx,bry]])}" fill="#F4C0D1" stroke="#D4537E" stroke-width="1.5" opacity="0.4"/>`;
+      s+=`<polygon points="${pts(L)}" fill="#5DCAA5" stroke="#1D9E75" stroke-width="1.5" opacity="0.9"/>`;
+      s+=`<polygon points="${pts(R)}" fill="#5DCAA5" stroke="#1D9E75" stroke-width="1.5" opacity="0.9"/>`;
+    }
+
+    if(i>0) s+=`<line x1="${ox}" y1="${ry}" x2="${ox}" y2="${ry+rh}" stroke="#888" stroke-width="1" stroke-dasharray="4 3" opacity="0.5"/>`;
+  }
+
+  s+=`<rect x="${rx}" y="${ry}" width="${rw}" height="${rh}" fill="none" stroke="#888780" stroke-width="2" stroke-dasharray="8 4"/>`;
+  s+=`<text x="${rx+rw/2}" y="${ry+rh+20}" text-anchor="middle" font-size="12" fill="#888780">W = ${W}</text>`;
+  s+=`<text x="${rx-16}" y="${ry+rh/2}" text-anchor="middle" dominant-baseline="middle" font-size="12" fill="#888780" transform="rotate(-90 ${rx-16} ${ry+rh/2})">H = ${H}</text>`;
+
+  document.getElementById('svgwrap').innerHTML=`<svg width="${SW}" height="${SH}" viewBox="0 0 ${SW} ${SH}" xmlns="http://www.w3.org/2000/svg">${s}</svg>`;
+}
+
+function setMode(m){
+  mode=m;
+  if(animId){cancelAnimationFrame(animId);animId=null;}
+  animT=0;animDir=1;
+  ['normal','halves','prove'].forEach(id=>{
+    document.getElementById('btn-'+id).classList.toggle('active',id===m);
+  });
+  document.getElementById('speed-row').style.display=m==='prove'?'flex':'none';  if(m==='prove'){
+    function tick(){
+      const spd=[0.005,0.012,0.022,0.038,0.06][+(document.getElementById('sl-spd').value)-1];
+      animT=Math.max(0,Math.min(1,animT+animDir*spd));
+      if(animT>=1) animDir=-1;
+      if(animT<=0) animDir=1;
+      drawSVG();
+      animId=requestAnimationFrame(tick);
+    }
+    tick();
+  } else drawSVG();
+}
+
+document.getElementById('sl-spd').addEventListener('input',e=>{document.getElementById('lb-spd').textContent=e.target.value;});
+['w','h','n'].forEach(k=>{
+  document.getElementById('sl-'+k).addEventListener('input',e=>{
+    const v=+e.target.value;
+    if(k==='w') W=v; else if(k==='h') H=v; else N=v;
+    document.getElementById('lb-'+k).textContent=v;
+    drawSVG();
+  });
+});
+
+setMode('normal');
+</script>
