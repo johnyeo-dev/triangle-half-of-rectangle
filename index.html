@@ -104,12 +104,47 @@ header {
   border-radius: 12px;
   padding: 1rem 1.25rem;
   display: grid;
+  gap: 12px;
+}
+
+/* +/- stepper rows */
+.stepper-row {
+  display: flex;
+  align-items: center;
   gap: 10px;
 }
-.row { display: flex; align-items: center; gap: 12px; }
-.row label { font-size: 13px; color: #666; min-width: 68px; }
-.row input[type=range] { flex: 1; height: 36px; cursor: pointer; }
-.row span { font-size: 13px; font-weight: 500; min-width: 22px; text-align: right; }
+.stepper-row label {
+  font-size: 13px;
+  color: #555;
+  font-weight: 600;
+  min-width: 72px;
+}
+.stepper-val {
+  font-size: 20px;
+  font-weight: 700;
+  min-width: 36px;
+  text-align: center;
+  color: #1a237e;
+}
+.stepper-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 2px solid #3949ab;
+  background: white;
+  color: #3949ab;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  touch-action: manipulation;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
+}
+.stepper-btn:active { background: #3949ab; color: white; }
 
 .btns { display: flex; gap: 8px; flex-wrap: wrap; padding-top: 4px; }
 button {
@@ -119,7 +154,7 @@ button {
   border-radius: 8px;
   border: 1.5px solid #ccc;
   background: white;
-  min-height: 42px;
+  min-height: 44px;
   touch-action: manipulation;
   font-family: inherit;
 }
@@ -134,6 +169,7 @@ button.active { background: #e8eaf6; border-color: #3949ab; color: #1a237e; font
   .badge { font-size: 12px; padding: 6px 14px; }
   .ctrls { padding: .75rem; }
   button { font-size: 12px; padding: 9px 14px; }
+  .stepper-btn { width: 44px; height: 44px; font-size: 22px; }
 }
 </style>
 </head>
@@ -181,9 +217,24 @@ button.active { background: #e8eaf6; border-color: #3949ab; color: #1a237e; font
   </div>
 
   <div class="ctrls">
-    <div class="row"><label>Width</label><input type="range" id="sl-w" min="4" max="20" value="10" step="1"><span id="lb-w">10</span></div>
-    <div class="row"><label>Height</label><input type="range" id="sl-h" min="4" max="20" value="8" step="1"><span id="lb-h">8</span></div>
-    <div class="row"><label>Triangles</label><input type="range" id="sl-n" min="1" max="4" value="1" step="1"><span id="lb-n">1</span></div>
+    <div class="stepper-row">
+      <label>Width</label>
+      <button class="stepper-btn" onclick="step('w',-1)">−</button>
+      <span class="stepper-val" id="lb-w">10</span>
+      <button class="stepper-btn" onclick="step('w',1)">+</button>
+    </div>
+    <div class="stepper-row">
+      <label>Height</label>
+      <button class="stepper-btn" onclick="step('h',-1)">−</button>
+      <span class="stepper-val" id="lb-h">8</span>
+      <button class="stepper-btn" onclick="step('h',1)">+</button>
+    </div>
+    <div class="stepper-row">
+      <label>Triangles</label>
+      <button class="stepper-btn" onclick="step('n',-1)">−</button>
+      <span class="stepper-val" id="lb-n">1</span>
+      <button class="stepper-btn" onclick="step('n',1)">+</button>
+    </div>
     <div class="btns">
       <button id="btn-normal" class="active" onclick="setMode('normal')">Normal view</button>
       <button id="btn-halves" onclick="setMode('halves')">Show the halves</button>
@@ -297,14 +348,13 @@ function setMode(m){
 }
 
 document.getElementById('sl-spd').addEventListener('input',e=>{ document.getElementById('lb-spd').textContent=e.target.value; });
-['w','h','n'].forEach(k=>{
-  document.getElementById('sl-'+k).addEventListener('input',e=>{
-    const v=+e.target.value;
-    if(k==='w') W=v; else if(k==='h') H=v; else N=v;
-    document.getElementById('lb-'+k).textContent=v;
-    drawSVG();
-  });
-});
+
+function step(k, d){
+  if(k==='w'){ W=Math.min(20,Math.max(4,W+d)); document.getElementById('lb-w').textContent=W; }
+  else if(k==='h'){ H=Math.min(20,Math.max(4,H+d)); document.getElementById('lb-h').textContent=H; }
+  else { N=Math.min(4,Math.max(1,N+d)); document.getElementById('lb-n').textContent=N; }
+  drawSVG();
+}
 
 window.addEventListener('resize', drawSVG);
 setMode('normal');
